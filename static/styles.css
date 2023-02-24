@@ -1,0 +1,21 @@
+h1{
+    color: rgb(0, 213, 255);
+    font-size: 50px;
+}
+
+body{
+    width: 80%;    
+    margin: auto;    
+    padding: 30px;    
+    text-align: center;    
+    font-size: small;    
+    font-family: fantasy;    
+    background-image: url("timothy-eberly-dTLlhgeEJWg-unsplash.jpg");    
+    background-size: cover;   
+}
+
+
+button{
+    background-color: gray;
+    paddin: 10px;
+}
