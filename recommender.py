@@ -55,7 +55,7 @@ def recommend_with_NMF(query, model = model_nmf, k=3):
     return rec_titles
 
     
-def recommend_neighborhood(query, model=model_cos, k=3):
+def recommend_neighborhood_old(query, model=model_cos, k=3):
     """
     Filters and recommends the top k movies for any given input query based on a trained nearest neighbors model. 
     Returns a list of k movie ids.
@@ -115,3 +115,33 @@ def recommend_neighborhood(query, model=model_cos, k=3):
     top_movies = movies[movies['movieId'].isin(top_scores['movieId'])]
     return top_movies['title'].to_list()
     
+def recommend_neighborhood(query, model= model_cos, ratings=ratings, n=10, k=5):
+    """
+    Filters and recommends the top k movies for any given input query based on a trained nearest neighbors model. 
+    Returns a list of k movie ids.
+    """
+    # 1. candiate generation
+    # construct a user vector
+    user_vec = np.repeat(0, R.shape[1])
+
+    # fill in the ratings that arrived from the query
+    user_vec[list(query.keys())] = list(query.values())
+   
+    # 2. scoring
+    # find n neighbors
+    userIds = model.kneighbors([user_vec], n_neighbors=n, return_distance=False)[0]
+    scores = ratings.set_index('userId').loc[userIds].groupby('movieId')['rating'].sum()
+    
+    # 3. ranking
+    # filter out movies allready seen by the user
+    scores[query.keys()]=0 
+    scores=scores.sort_values(ascending=False)
+    
+     # return the top-k highst rated movie ids or titles
+    recommendations=scores.head(k).index
+    rec_titles = []
+    for movieID in recommendations:
+        title = id_to_movie(movieID)
+        rec_titles.append(title)
+
+    return rec_titles
