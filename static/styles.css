@@ -17,6 +17,9 @@ body{
 
 
 button{
-    background-color: gray;
+    background-color: lightpink;
+    border: none;
+    border-radius: 5px 25px;
     padding: 10px;
+    font-size:1.1em;
 }
