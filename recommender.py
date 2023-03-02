@@ -11,6 +11,7 @@ from utils import model_cos
 from utils import ratings
 from utils import R
 from scipy.sparse import csr_matrix
+from sklearn import neighbors
 from utils import example_query
 from utils import id_to_movie
 
@@ -100,7 +101,9 @@ def recommend_neighborhood_old(query, model=model_cos, k=3):
     df_score.reset_index(inplace=True)
     
     # give a zero score to movies the user has allready seen
-    df_score['score'] = df_score['score'].map(lambda x: 0 if x in query.keys() else x)
+    #df_score['score'] = df_score['score'].map(lambda x: 0 if x in query.keys() else x)
+    df_score['score'] = df_score['score'].map({query.keys:0})
+
 
     # sort the scores from high to low 
     df_score.sort_values(
@@ -115,7 +118,7 @@ def recommend_neighborhood_old(query, model=model_cos, k=3):
     top_movies = movies[movies['movieId'].isin(top_scores['movieId'])]
     return top_movies['title'].to_list()
     
-def recommend_neighborhood(query, model= model_cos, ratings=ratings, n=10, k=5):
+def recommend_neighborhood_(query, model= model_cos, ratings=ratings, n=10, k=5):
     """
     Filters and recommends the top k movies for any given input query based on a trained nearest neighbors model. 
     Returns a list of k movie ids.
@@ -138,6 +141,49 @@ def recommend_neighborhood(query, model= model_cos, ratings=ratings, n=10, k=5):
     scores=scores.sort_values(ascending=False)
     
      # return the top-k highst rated movie ids or titles
+    recommendations=scores.head(k).index
+    rec_titles = []
+    for movieID in recommendations:
+        title = id_to_movie(movieID)
+        rec_titles.append(title)
+
+    return rec_titles
+
+
+def recommend_neighborhood(query, model=model_cos, ratings=ratings, n = 10, k=10):
+    """
+    Filters and recommends the top k movies for any given input query based on a trained nearest neighbors model. 
+    Returns a list of k movie ids.
+    """
+    # 1. candiate generation
+    # construct a user vector
+    # new user vector: needs to have the same format as the training data
+    # pre fill it with zeros
+    user_vec = np.repeat(0, R.shape[1])
+
+    # fill in the ratings that arrived from the query
+    user_vec[list(query.keys())] = list(query.values())
+    
+   
+    # 2. scoring
+    # calculates the distances to all other users in the data!
+    distances, userIds = model.kneighbors([user_vec], n_neighbors=n, return_distance=True)
+
+    # sklearn returns a list of predictions - extract the first and only value of the list
+    distances = distances[0]
+    userIds = userIds[0]
+    # only look at ratings for users that are similar!
+    neighborhood = ratings.set_index('userId').loc[userIds]
+    
+    
+    # 3. ranking
+    scores =  neighborhood.loc[userIds].groupby('movieId')['rating'].sum()
+
+    # filter out movies allready seen by the user
+    scores[query.keys()]=0 
+    scores=scores.sort_values(ascending=False)
+
+    # return the top-k highst rated movie ids or titles
     recommendations=scores.head(k).index
     rec_titles = []
     for movieID in recommendations:

@@ -14,7 +14,7 @@ import numpy as np
 import pickle 
 
 # load data
-movies = pd.read_csv('data/movies_new.csv')
+movies = pd.read_csv('data/movies_new.csv', sep=';')
 ratings = pd.read_csv('data/ratings_new.csv')
 
 # load models
